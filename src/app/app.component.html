@@ -1,0 +1,107 @@
+<main class="page-shell">
+  <header class="hero">
+    <a class="brand" href="/" aria-label="Snip home">
+      <span class="brand-mark" aria-hidden="true">s</span>
+      <span>snip</span>
+    </a>
+    <p class="eyebrow">A little less link</p>
+    <h1>Make every link <span>short and sweet.</span></h1>
+    <p class="hero-copy">A clean, simple home for the links you want to share.</p>
+
+    <form class="shorten-form" [formGroup]="form" (ngSubmit)="submitLink()" novalidate>
+      <label class="sr-only" for="url">Long URL to shorten</label>
+      <input
+        id="url"
+        type="url"
+        inputmode="url"
+        autocomplete="url"
+        placeholder="Paste a long link here..."
+        formControlName="url"
+        [attr.aria-invalid]="urlControl.invalid && (urlControl.dirty || urlControl.touched || submitted())"
+        [attr.aria-describedby]="urlError ? 'url-error' : null"
+      />
+      <button type="submit" [disabled]="submitting()">
+        @if (submitting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Shortening
+        } @else {
+          Shorten link
+          <span aria-hidden="true">↗</span>
+        }
+      </button>
+    </form>
+    @if (urlError; as message) {
+      <p class="field-error" id="url-error" role="alert">{{ message }}</p>
+    } @else {
+      <p class="form-hint">Use a full URL starting with http:// or https://</p>
+    }
+
+    @if (createdLink(); as link) {
+      <div class="result-card" role="status" aria-live="polite">
+        <div>
+          <span class="result-label">Your short link is ready</span>
+          <a class="result-link" [href]="link.shortUrl" target="_blank" rel="noopener noreferrer">
+            {{ link.shortUrl }}
+          </a>
+        </div>
+        <span class="result-icon" aria-hidden="true">✓</span>
+      </div>
+    }
+  </header>
+
+  <section class="links-section" aria-labelledby="links-heading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Your collection</p>
+        <h2 id="links-heading">Recent links</h2>
+      </div>
+      @if (!linksLoading()) {
+        <span class="count-pill">{{ links().length }} {{ links().length === 1 ? 'link' : 'links' }}</span>
+      }
+    </div>
+
+    @if (linksError()) {
+      <div class="state-card error-state" role="alert">
+        <p>{{ linksError() }}</p>
+        <button class="text-button" type="button" (click)="loadLinks()">Try again</button>
+      </div>
+    } @else if (linksLoading()) {
+      <div class="state-card" role="status" aria-live="polite">Loading your links...</div>
+    } @else if (links().length === 0) {
+      <div class="state-card empty-state">
+        <span class="empty-icon" aria-hidden="true">↗</span>
+        <p>No links yet. Your shortened links will show up here.</p>
+      </div>
+    } @else {
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Short link</th>
+              <th scope="col">Original URL</th>
+              <th scope="col" class="hits-column">Hits</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (link of links(); track link.code) {
+              <tr>
+                <td>
+                  <a class="short-code" [href]="link.shortUrl" target="_blank" rel="noopener noreferrer">
+                    {{ link.shortUrl }}
+                  </a>
+                </td>
+                <td class="original-url" [title]="link.url">{{ link.url }}</td>
+                <td class="hits-column"><span class="hit-count">{{ link.hits }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <footer class="footer">
+    <span class="brand-mark small" aria-hidden="true">s</span>
+    <span>Small links, big energy.</span>
+  </footer>
+</main>

@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { LinkRecord, LinksService } from './links.service';
@@ -17,6 +17,7 @@ function isHttpUrl(value: string): boolean {
   selector: 'app-root',
   imports: [ReactiveFormsModule],
   templateUrl: './app.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {

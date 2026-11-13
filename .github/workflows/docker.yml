@@ -39,6 +39,11 @@ jobs:
       - name: Check frontend dependencies
         working-directory: frontend
         run: npm audit --audit-level=high
+      - name: Test frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test -- --watch=false --browsers=ChromeHeadless
       - name: Identify checked-out release
         id: release
         run: echo "sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"

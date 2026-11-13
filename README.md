@@ -13,7 +13,7 @@ materialize all components.
 | Branch | Path | Stack |
 | --- | --- | --- |
 | `backend` | `backend/` | Bun, zero dependencies |
-| `frontend` | `frontend/` | Angular 19 |
+| `frontend` | `frontend/` | Angular 22 |
 | `cli` | `cli/` | Node.js CommonJS, zero dependencies |
 | `bundle` | `bundle/` | Generated release: API, web UI, and CLI |
 | `main` | repository root | Submodules, build script, and CI |
@@ -42,6 +42,7 @@ cd cli && node cli.js ls
 ```
 
 The backend listens on port `3000`; Angular serves the UI on port `4200`.
+The frontend requires Node.js `^22.22.3`, `^24.15.0`, or `>=26.0.0`.
 Set `SNIP_API` to change the CLI's backend URL.
 
 ## Updating and releasing
@@ -68,5 +69,5 @@ The bundle workflow runs hourly or manually (not on component pushes). The
 Docker workflow runs when `main` changes the bundle gitlink or its own workflow
 file, manually, or after a successful bundle workflow. The last trigger is
 necessary because pushes made by `GITHUB_TOKEN` do not start push workflows.
-Image publication is gated by CLI tests, a high/critical dependency audit,
-image vulnerability scanning, and a container smoke test.
+Image publication is gated by CLI and frontend tests, a high/critical
+dependency audit, image vulnerability scanning, and a container smoke test.

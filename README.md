@@ -29,7 +29,7 @@ materialize all components.
 ## Clone and run
 
 ```sh
-git clone --recurse-submodules https://github.com/limjiajie87/Demo.git
+git clone --branch main --recurse-submodules https://github.com/limjiajie87/Demo.git
 cd Demo
 ```
 

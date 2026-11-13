@@ -1,0 +1,93 @@
+name: Build and push image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - bundle
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+  # GITHUB_TOKEN pushes do not start other push workflows.
+  workflow_run:
+    workflows: [Build bundle]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-release
+  cancel-in-progress: false
+
+jobs:
+  image:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          submodules: recursive
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Check CLI
+        working-directory: cli
+        run: npm test
+      - name: Check frontend dependencies
+        working-directory: frontend
+        run: npm audit --audit-level=high
+      - name: Identify checked-out release
+        id: release
+        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=sha-${{ steps.release.outputs.sha }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build image for verification
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./bundle
+          load: true
+          tags: |
+            snip:verification
+            ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Scan image
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: snip:verification
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+      - name: Smoke test image
+        run: |
+          set -eu
+          docker run -d --name snip-verify -p 127.0.0.1:3000:3000 snip:verification
+          trap 'docker logs snip-verify; docker rm -f snip-verify' EXIT
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:3000/ | grep -q '<app-root'
+          response=$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"url":"https://example.com/"}' http://127.0.0.1:3000/api/links)
+          code=$(node -e 'console.log(JSON.parse(process.argv[1]).code)' "$response")
+          test "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/$code")" = 302
+          curl -fsS http://127.0.0.1:3000/api/links | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{if(!JSON.parse(s).some(x=>x.hits===1)) process.exit(1)})'
+      - name: Sign in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish verified image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -n "$tag" ] && docker push "$tag"
+          done <<< "$TAGS"

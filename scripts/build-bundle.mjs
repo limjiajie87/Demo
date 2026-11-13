@@ -11,6 +11,13 @@ if (process.argv.slice(2).some((arg) => arg !== '--push')) {
   throw new Error('Usage: node scripts/build-bundle.mjs [--push]');
 }
 
+if (process.env.GITHUB_ACTIONS && process.env.GITHUB_TOKEN) {
+  const credentials = Buffer.from(`x-access-token:${process.env.GITHUB_TOKEN}`).toString('base64');
+  process.env.GIT_CONFIG_COUNT = '1';
+  process.env.GIT_CONFIG_KEY_0 = 'http.https://github.com/.extraheader';
+  process.env.GIT_CONFIG_VALUE_0 = `AUTHORIZATION: basic ${credentials}`;
+}
+
 function run(command, args, cwd = root, capture = false) {
   const result = spawnSync(command, args, {
     cwd,

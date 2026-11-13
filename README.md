@@ -66,4 +66,7 @@ node scripts/build-bundle.mjs --push
 
 The bundle workflow runs hourly or manually (not on component pushes). The
 Docker workflow runs when `main` changes the bundle gitlink or its own workflow
-file.
+file, manually, or after a successful bundle workflow. The last trigger is
+necessary because pushes made by `GITHUB_TOKEN` do not start push workflows.
+Image publication is gated by CLI tests, a high/critical dependency audit,
+image vulnerability scanning, and a container smoke test.
